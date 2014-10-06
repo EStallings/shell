@@ -1,49 +1,70 @@
 
 /*+==========================================================================+*\
 
-prompt: "minsh-LB: "
-use "ps" and "kill" to find and clean processes
-
-(50%)	whitespace separates commands, arguments, shell operators
-	length of a command line to 80 characters
-	number of arguments to a single command to 10
 	required to use execvp
-
-(20%)	Before command execution, print the following:
-		"ToRun: command-name 1:arg1, 2:arg2, ... N:argN"
-	execute command as separate process (fork followed by execvp)
+	execute command as separate process(fork followed by execvp)
 	after execution of command terminates, print the following:
 		"CompleteRun(PID:xxxx): commend-name -- user time xx.xx system time xx.xx"
-	You can use "getrusage" (man -s 2 getrusage) to obtain child process clock values
-
-(20%)	"&" = background job
+	You can use "getrusage"(man -s 2 getrusage) to obtain child process clock values
+	"&" = background job
 	record pids for background jobs, check/terminate before shell exits
-
-(10%)	"exit": minsh should check and terminate unfinished background jobs then terminate itself
+	"exit": minsh should check and terminate unfinished background jobs then terminate itself
 	errors in executing commends should not terminate shell
+	use "ps" and "kill" to find and clean processes
 
 	not required to handle "<", ">", ">>", ";", "|", "&&"
 
 \*+==========================================================================+*/
 
+#define MAX_BUFFER 80
+#define MAX_ARGS   10
+
+#include <stdio.h>
+
 int main(int argc,char **argv){
-	pid_t child_pid;
-	char *cmdLine;
-	int maxc = 80,len = 80,readlen;
-	cmdLine = (char*)malloc(maxc*sizeof(char));
+	char buffer[MAX_BUFFER];
+	char *args[MAX_ARGS];
+	int i,j;
 	
-	while (1){
-		if ((readlen = getline(&cmdline,&len,stdin)) > 0){
-			ParseCommand cmdLine and set isBackground if '&' presents
-			if (next command is "exit"){
+	while(1){
+		// get input
+		printf("minsh-LB-ES: ");
+		if(!fgets(buffer,MAX_BUFFER,stdin))return -1;
+
+		// get args
+		for(i=0;i<MAX_ARGS;++i) args[i] = NULL;
+		for(i=0;i<MAX_BUFFER;++i)if(buffer[i]=='\n')buffer[i] = '\0';
+		for(i=0,j=0;i<MAX_BUFFER;){
+			while(buffer[i]==' ') buffer[i++] = '\0'; // XXX: this can run off the buffer
+			args[j++] = buffer+i;
+			while(buffer[i]!=' ' && i<MAX_BUFFER) ++i;
+		}
+
+
+
+
+
+
+
+
+
+
+
+		printf("ToRun: ");
+		for(i=0;i<MAX_ARGS && args[i];++i)
+			printf("%d:%s, ",i,args[i]);
+		puts("");
+/*
+			ParseCommand buffer and set isBackground if '&' presents
+			if(next command is "exit"){
 				Handle unfinished background jobs, then terminate;
-			}switch (child_pid = fork()){
+			}switch(fork()){
 				case asChild:
 					Display pre-command information
 					use execvp to execute command
 					break;
 				case asParent:
-					if (isBackground){
+					if(isBackground){
 						Record information into background job list
 					}else{
 						Wait for child process to finish
@@ -53,7 +74,6 @@ int main(int argc,char **argv){
 					break;
 			}
 		}
+*/
 	}
-
-	free(cmdLine);
 }
