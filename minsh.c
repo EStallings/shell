@@ -39,8 +39,10 @@ int main(int argc,char **argv){
 		if(!j)continue;
 		if(!strncmp(args[0],"exit",4))while(1){
 			if(currentNode){
+				struct node *del=currentNode;
 				kill(currentNode->pid,SIGKILL);
 				currentNode=currentNode->prev;
+				free(del);
 			}else return 0;
 			puts("TEST");
 		}
