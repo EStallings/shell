@@ -60,21 +60,23 @@ int main(int argc,char **argv){
 		// run command
 		pid_t p,pid;
 		if(p=fork())waitpid(p,NULL,0);
-		else switch(pid=fork()){
-			case 0:execvp(args[0],args);
-			case -1:return -1;
-			default:if(!bkgnd){
-				waitpid(pid,NULL,0);
-				struct rusage usage;
-				if(!getrusage(RUSAGE_CHILDREN,&usage))
-					printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
-					       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
-			}else{
+		else{
+			switch(pid=fork()){
+				case 0:execvp(args[0],args);
+				case -1:return -1;
+				default:if(!bkgnd){
+					waitpid(pid,NULL,0);
+					struct rusage usage;
+					if(!getrusage(RUSAGE_CHILDREN,&usage))
+						printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
+						       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
+				}return 0;
+			}if(bkgnd){
 				struct node *n=malloc(sizeof(struct node));
 				n->prev=currentNode;
 				n->pid=pid;
 				currentNode=n;
-			}return 0;
+			}
 		}
 	}
 }
