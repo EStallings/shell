@@ -1,79 +1,68 @@
-
-/*+==========================================================================+*\
-
-	required to use execvp
-	execute command as separate process(fork followed by execvp)
-	after execution of command terminates, print the following:
-		"CompleteRun(PID:xxxx): commend-name -- user time xx.xx system time xx.xx"
-	You can use "getrusage"(man -s 2 getrusage) to obtain child process clock values
-	"&" = background job
-	record pids for background jobs, check/terminate before shell exits
-	"exit": minsh should check and terminate unfinished background jobs then terminate itself
-	errors in executing commends should not terminate shell
-	use "ps" and "kill" to find and clean processes
-
-	not required to handle "<", ">", ">>", ";", "|", "&&"
-
-\*+==========================================================================+*/
-
-#define MAX_BUFFER 80
-#define MAX_ARGS   10
-
+#include <sys/resource.h>
+#include <signal.h>
+#include <stdlib.h>
 #include <stdio.h>
+
+#define MAX_BUFFER 128
+#define MAX_ARGS   16
+
+struct node{
+	struct node *prev;
+	pid_t pid;
+}*currentNode=NULL;
 
 int main(int argc,char **argv){
 	char buffer[MAX_BUFFER];
 	char *args[MAX_ARGS];
-	int i,j;
-	
+	unsigned int i,j,k,bkgnd;
+
 	while(1){
 		// get input
 		printf("minsh-LB-ES: ");
 		if(!fgets(buffer,MAX_BUFFER,stdin))return -1;
 
 		// get args
-		for(i=0;i<MAX_ARGS;++i) args[i] = NULL;
-		for(i=0;i<MAX_BUFFER;++i)if(buffer[i]=='\n')buffer[i] = '\0';
-		for(i=0,j=0;i<MAX_BUFFER;){
-			while(buffer[i]==' ') buffer[i++] = '\0'; // XXX: this can run off the buffer
-			args[j++] = buffer+i;
-			while(buffer[i]!=' ' && i<MAX_BUFFER) ++i;
+		for(i=0;i<MAX_ARGS;++i)args[i]=NULL;
+		for(i=j=bkgnd=0,k=1;i<MAX_BUFFER&&j<MAX_ARGS;++i)switch(buffer[i]){
+			case '&':bkgnd=1; // fallthrough
+			case ' ':case '\n':k=1;buffer[i]='\0';break;
+			default:if(k)args[j++]=buffer+i;k=0;break;
+			case '\0':i=MAX_BUFFER;break;
 		}
 
-
-
-
-
-
-
-
-
-
-
+		// print ToRun
 		printf("ToRun: ");
-		for(i=0;i<MAX_ARGS && args[i];++i)
-			printf("%d:%s, ",i,args[i]);
+		for(i=0;i<MAX_ARGS && args[i];++i)printf("%d:%s, ",i,args[i]);
 		puts("");
-/*
-			ParseCommand buffer and set isBackground if '&' presents
-			if(next command is "exit"){
-				Handle unfinished background jobs, then terminate;
-			}switch(fork()){
-				case asChild:
-					Display pre-command information
-					use execvp to execute command
-					break;
-				case asParent:
-					if(isBackground){
-						Record information into background job list
-					}else{
-						Wait for child process to finish
-						Display post-command information
-					}break;
-				case asError:
-					break;
-			}
+
+		// parse args, cleanup before exiting
+		if(!j)continue;
+		if(!strncmp(args[0],"exit",4))while(1){
+			if(currentNode){
+				kill(currentNode->pid,SIGKILL);
+				currentNode=currentNode->prev;
+			}else return 0;
+			puts("TEST");
 		}
-*/
+
+		// run command
+		pid_t p,pid;
+		if(p=fork())waitpid(p,NULL,0);
+		else switch(pid=fork()){
+			case 0:execvp(args[0],args);
+			case -1:return -1;
+			default:if(!bkgnd){
+				waitpid(pid,NULL,0);
+				struct rusage usage;
+				if(!getrusage(RUSAGE_CHILDREN,&usage))
+					printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
+					       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
+			}else{
+				struct node *n=malloc(sizeof(struct node));
+				n->prev=currentNode;
+				n->pid=pid;
+				currentNode=n;
+			}return 0;
+		}
 	}
 }
