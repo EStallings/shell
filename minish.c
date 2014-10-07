@@ -35,7 +35,7 @@ int main(int argc,char **argv){
 		// get args
 		for(i=0;i<MAX_ARGS;++i)args[i]=NULL;
 		for(i=j=bkgnd=0,k=1;i<MAX_BUFFER&&j<MAX_ARGS;++i)switch(buffer[i]){
-			case '&':bkgnd=1; // fallthrough
+			case '&':bkgnd=1;
 			case ' ':case '\n':k=1;buffer[i]='\0';break;
 			default:if(k)args[j++]=buffer+i;k=0;break;
 			case '\0':i=MAX_BUFFER;break;
@@ -59,24 +59,21 @@ int main(int argc,char **argv){
 
 		// run command
 		pid_t p,pid;
-		if(p=fork())waitpid(p,NULL,0);
-		else{
-			switch(pid=fork()){
-				case 0:execvp(args[0],args);
-				case -1:return -1;
-				default:if(!bkgnd){
-					waitpid(pid,NULL,0);
-					struct rusage usage;
-					if(!getrusage(RUSAGE_CHILDREN,&usage))
-						printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
-						       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
-				}return 0;
-			}if(bkgnd){
+		switch(pid=fork()){
+			case 0:execvp(args[0],args);
+			case -1:return -1;
+			default:if(!bkgnd){
+				waitpid(pid,NULL,0);
+				struct rusage usage;
+				if(!getrusage(RUSAGE_CHILDREN,&usage))
+					printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
+					       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
+			}else{
 				struct node *n=malloc(sizeof(struct node));
 				n->prev=currentNode;
 				n->pid=pid;
 				currentNode=n;
-			}
+			}break;
 		}
 	}
 }
