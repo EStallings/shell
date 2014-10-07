@@ -63,11 +63,13 @@ int main(int argc,char **argv){
 			case 0:execvp(args[0],args);
 			case -1:return -1;
 			default:if(!bkgnd){
+				struct rusage begin,end;
+				getrusage(RUSAGE_CHILDREN,&begin);
 				waitpid(pid,NULL,0);
-				struct rusage usage;
-				if(!getrusage(RUSAGE_CHILDREN,&usage))
-					printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
-					       usage.ru_utime.tv_sec,usage.ru_utime.tv_usec,usage.ru_stime.tv_sec,usage.ru_stime.tv_usec);
+				getrusage(RUSAGE_CHILDREN,&end);
+				printf("CompleteRun(PID:%d): %s -- user time %ld.%06ld system time %ld.%06ld\n",pid,args[0],
+				       end.ru_utime.tv_sec-begin.ru_utime.tv_sec,end.ru_utime.tv_usec-begin.ru_utime.tv_usec,
+				       end.ru_stime.tv_sec-begin.ru_stime.tv_sec,end.ru_stime.tv_usec-begin.ru_stime.tv_usec);
 			}else{
 				struct node *n=malloc(sizeof(struct node));
 				n->prev=currentNode;
