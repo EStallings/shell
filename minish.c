@@ -1,10 +1,13 @@
-/*
-	Minish.c
+
+/*+==========================================================================+*\
+
+	minish.c
 	For CS481, Fall 2014
 	Prof. Wei Shu
 
 	By Luke Balaoro and Ezra Stallings
-*/
+
+\*+==========================================================================+*/
 
 #include <sys/resource.h>
 #include <signal.h>
