@@ -44,7 +44,6 @@ int main(int argc,char **argv){
 				currentNode=currentNode->prev;
 				free(del);
 			}else return 0;
-			puts("TEST");
 		}
 
 		// run command
